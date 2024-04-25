@@ -1,0 +1,55 @@
+name: "terraform-deploy"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  PushToAWS:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+      - run: |
+          cd api && npm install
+          cd ..
+          mkdir zip
+          zip -r backend_app_config_language.zip api
+        env:
+          CI: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      
+      - name: Connect to AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-session-name: awssyncsession
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform fmt
+          terraform init
+          terraform validate
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          TF_VAR_appconfig_application_feature_flag: ${{ secrets.APPCONFIG_APPLICATION }}
+          TF_VAR_appconfig_environment_feature_flag: ${{ secrets.APPCONFIG_ENVIRONMENT }}
+          TF_VAR_appconfig_configuration_feature_flag: ${{ secrets.APPCONFIG_CONFIGURATION }}
+      
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve

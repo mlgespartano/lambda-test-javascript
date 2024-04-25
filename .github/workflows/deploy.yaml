@@ -1,12 +1,11 @@
 name: "terraform-deploy"
 
 on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   PushToAWS:
@@ -31,11 +30,12 @@ jobs:
         uses: hashicorp/setup-terraform@v2
       
       - name: Connect to AWS
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-session-name: awssyncsession
           role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
           aws-region: ${{ secrets.AWS_REGION }}
+          audience: sts.amazonaws.com
 
       - name: Terraform Init
         id: init

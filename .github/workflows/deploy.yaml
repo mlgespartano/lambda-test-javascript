@@ -1,7 +1,5 @@
 name: terraform-test
 run-name: "Deploy - Type deploy: ${{ inputs.typeDeploy }} in environment {{input.environment}}  by @${{ github.actor }}"
-description: "Scan your code with SonarQube Scanner to detect bugs, vulnerabilities and code smells in more than 25 programming languages."
-author: "lolito" # checar
 
 on:
   workflow_dispatch:

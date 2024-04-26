@@ -23,6 +23,7 @@ async function getAppConfig(url) {
 
 async function getConfig() {
   let appconfigPort = 2772;
+  // new log
   const url =
     `http://localhost:${appconfigPort}` +
     `/applications/${process.env.APPCONFIG_APPLICATION}` +

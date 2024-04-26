@@ -1,5 +1,5 @@
 name: terraform-test
-run-name: Type of deploy ${{ inputs.typeDeploy }} in environment {{input.environment}}  by @${{ github.actor }}
+run-name: Type of deploy ${{ inputs.typeDeploy }} in environment {{inputs.environment}}  by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: "20.x"
       - run: |
-          cd api && npm ci
+          cd api && npm install
           cd ..
           mkdir zip
           zip -r backend_app_config_language.zip api

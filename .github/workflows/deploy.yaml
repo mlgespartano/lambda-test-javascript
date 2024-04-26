@@ -91,6 +91,6 @@ jobs:
         if: steps.deploy.outcome == 'success' && steps.destroy.outcome == 'success'
         run: |
           echo "Despliegue exitoso en el entorno de producción"
-        else
+          else
           echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
           echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"

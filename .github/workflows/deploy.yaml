@@ -1,29 +1,52 @@
-name: "terraform-deploy"
+name: terraform-test
+run-name: "Deploy - Type deploy: ${{ inputs.typeDeploy }} in environment {{input.environment}}  by @${{ github.actor }}"
+description: "Scan your code with SonarQube Scanner to detect bugs, vulnerabilities and code smells in more than 25 programming languages."
+author: "lolito" # checar
 
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
+  workflow_dispatch:
+    inputs:
+      typeDeploy:
+        description: 'Type of deploy'
+        required: true
+        default: 'implemetantion'
+        type: choice
+        options:
+          - implemetantion
+          - bugfix
+      environment:
+        description: 'Environment to run'
+        type: environment
+        required: true
   push:
+    paths:
+      - 'api/**' # Watch changes in the folder exclusively
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 permissions:
-      id-token: write   # This is required for requesting the JWT
+      id-token: write
       contents: read 
 
 jobs:
-  PushToAWS:
+  qa:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v2
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v3
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event.""
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - name: Clone repository
+        id: clone
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Setup Node.js 20
+        id: setup-node
+        uses: actions/setup-node@v4
         with:
           node-version: "20.x"
       - run: |
-          cd api && npm install
+          cd api && npm ci
           cd ..
           mkdir zip
           zip -r backend_app_config_language.zip api
@@ -31,9 +54,13 @@ jobs:
           CI: true
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        id: setup-terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.2"
       
       - name: Connect to AWS
+        id: connect-aws
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-session-name: awssyncsession
@@ -49,6 +76,7 @@ jobs:
           terraform validate
 
       - name: Terraform Apply
+        id: deploy
         run: terraform apply -auto-approve
         env:
           TF_VAR_appconfig_application_feature_flag: ${{ secrets.APPCONFIG_APPLICATION }}
@@ -56,4 +84,13 @@ jobs:
           TF_VAR_appconfig_configuration_feature_flag: ${{ secrets.APPCONFIG_CONFIGURATION }}
       
       - name: Terraform Destroy
+        id: destroy
         run: terraform destroy -auto-approve
+
+      - name: Notificar resultado del despliegue
+        if: steps.deploy.outcome == 'success' && steps.destroy.outcome == 'success'
+        run: |
+          echo "Despliegue exitoso en el entorno de producción"
+        else
+          echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
+          echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"

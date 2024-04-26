@@ -1,5 +1,5 @@
 name: terraform-test
-run-name: Type of deploy ${{ inputs.typeDeploy }} in environment {{inputs.environment}}  by @${{ github.actor }}
+run-name: Type of deploy ${{ inputs.typeDeploy }} in environment ${{inputs.environment}}  by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -86,9 +86,11 @@ jobs:
         run: terraform destroy -auto-approve
 
       - name: Notificar resultado del despliegue
-        if: steps.deploy.outcome == 'success' && steps.destroy.outcome == 'success'
         run: |
-          echo "Despliegue exitoso en el entorno de producción"
+          if [ steps.deploy.outcome == 'success' && steps.destroy.outcome == 'success' ]; then
+            echo "Despliegue exitoso en el entorno de ${{ inputs.typeDeploy }}"
           else
-          echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
-          echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"
+            echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
+            echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"
+    outputs:
+      destroy: ${{ steps.destroy.outputs.destroy }}

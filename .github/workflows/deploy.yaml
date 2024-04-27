@@ -1,5 +1,5 @@
 name: terraform-test
-run-name: Type of deploy ${{ inputs.typeDeploy }} in environment ${{inputs.environment}}  by @${{ github.actor }}
+run-name: Type of deploy ${{ env.TYPE_DEPLOY }} in environment ${{inputs.environment}}  by @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       typeDeploy:
         description: 'Type of deploy'
         required: true
-        default: 'implemetantion'
+        default: implemetantion
         type: choice
         options:
           - implemetantion
@@ -16,12 +16,16 @@ on:
         description: 'Environment to run'
         type: environment
         required: true
+        default: qa
   push:
     paths:
       - 'api/**' # Watch changes in the folder exclusively
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+env:
+  TYPE_DEPLOY: ${{ inputs.typeDeploy || 'implemetantion' }}
 
 permissions:
       id-token: write
@@ -87,8 +91,8 @@ jobs:
 
       - name: Notificar resultado del despliegue
         run: |
-          if [[ steps.deploy.outcome == 'success' && steps.destroy.outcome == 'success' ]]; then
-            echo "Despliegue exitoso en el entorno de ${{ inputs.typeDeploy }}"
+          if [[ ${{ steps.deploy.outcome }} == 'success' && ${{ steps.destroy.outcome }} == 'success' ]]; then
+            echo "Despliegue exitoso en el entorno de ${{ env.TYPE_DEPLOY }}"
           else
             echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
             echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"

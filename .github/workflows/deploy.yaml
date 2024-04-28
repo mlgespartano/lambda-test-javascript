@@ -1,16 +1,17 @@
 name: terraform-test
-run-name: Type of deploy $TYPE_DEPLOY in environment ${{inputs.environment}}  by @${{ github.actor }}
+run-name: SHA ${{github.sha}} by @${{ github.actor }}
 
 on:
   workflow_dispatch:
     inputs:
       typeDeploy:
-        description: 'Type of deploy'
+        description: 'Type of integration with environment'
         required: true
-        default: implemetantion
+        default: feature
         type: choice
         options:
-          - implemetantion
+          - feature
+          - hotfix
           - bugfix
       environment:
         description: 'Environment to run'
@@ -20,33 +21,61 @@ on:
   push:
     paths:
       - 'api/**' # Watch changes in the folder exclusively
-    branches: [ "main" ]
+    branches: [ "main", "Develop" ]
   pull_request:
     branches: [ "main" ]
 
 env:
-  TYPE_DEPLOY: ${{ inputs.typeDeploy || 'implemetantion' }}
+  TYPE_DEPLOY: ${{ inputs.typeDeploy || 'lol' }}
+  ENVIRONMENT_DEPLOY: ${{ inputs.environment || 'qa' }}
 
 permissions:
       id-token: write
       contents: read 
 
 jobs:
-  qa:
+  sonarqube:
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    name: sonarqube
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # - name: Analysis code
+      #   id: sonar
+      #   run: |
+      #     echo "Aqui analiza"
+      #     echo "::set-output name=analysis_check::good"
+      #   outputs:
+      #     analysis_check: ${{ steps.set.outputs.analysis_check }}
+  
+  deployment:
+    runs-on: ubuntu-latest
+    # needs:
+    #   - sonarqube
+    # if: needs.sonarqube.outputs.analysis_check == 'good' && needs.sonarqube.result == 'success'
+    name: deployment
+    steps:
       - name: Clone repository
         id: clone
         uses: actions/checkout@v4
         with:
           ref: main
+
       - name: Setup Node.js 20
         id: setup-node
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
+
       - run: |
           cd api && npm install
           cd ..
@@ -89,13 +118,12 @@ jobs:
         id: destroy
         run: terraform destroy -auto-approve
 
-      - name: Notificar resultado del despliegue
+      - name: Resultado del despliegue
         run: |
           if [[ ${{ steps.deploy.outcome }} == 'success' && ${{ steps.destroy.outcome }} == 'success' ]]; then
-            echo "Despliegue exitoso en el entorno de $TYPE_DEPLOY"
+            echo "Despliegue exitoso de tipo $TYPE_DEPLOY en el entorno de $ENVIRONMENT_DEPLOY"
+            echo "Nombre del proyecto: ${{ vars.NAME_PROJECT }}"
           else
             echo "Error en el despliegue deploy: ${{ steps.deploy.outcome }}"
             echo "Error en el despliegue destroy: ${{ steps.destroy.outcome }}"
           fi
-    outputs:
-      destroy: ${{ steps.destroy.outputs.destroy }}

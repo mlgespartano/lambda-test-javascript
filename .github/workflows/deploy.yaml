@@ -59,16 +59,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      - name: Analysis code
-        id: sonar
-        run: |
-          echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+    outputs:
+      analysis_check: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}
   
   deployment:
     runs-on: ubuntu-latest
     needs:
       - sonarqube
-    if: needs.sonarqube.result == 'success'
+    if: needs.sonarqube.result == 'success' && needs.sonarqube.outputs.analysis_check == 'PASSED'
     name: deployment
     steps:
       - name: Clone repository

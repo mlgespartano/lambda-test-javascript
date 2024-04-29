@@ -62,17 +62,13 @@ jobs:
       - name: Analysis code
         id: sonar
         run: |
-          echo "Aqui analiza"
-          echo "::set-output name=analysis_check::good"
           echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
-        outputs:
-          analysis_check: ${{ steps.set.outputs.analysis_check }}
   
   deployment:
     runs-on: ubuntu-latest
     needs:
       - sonarqube
-    if: needs.sonarqube.outputs.analysis_check == 'good' && needs.sonarqube.result == 'success'
+    if: needs.sonarqube.result == 'success'
     name: deployment
     steps:
       - name: Clone repository

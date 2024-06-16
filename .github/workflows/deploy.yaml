@@ -39,11 +39,20 @@ jobs:
     runs-on: ubuntu-latest
     name: sonarqube
     steps:
-      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      # - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      # - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: main
+
+      - name: Cache SonarQube dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.sonar/cache
+          key: sonarqube-${{ runner.os }}-${{ hashFiles('**/sonar-project.properties') }}
+          restore-keys: |
+            sonarqube-${{ runner.os }}-
+
       - name: SonarQube Scan
         id: sonarqube-scan
         uses: sonarsource/sonarqube-scan-action@master
@@ -80,8 +89,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
-
-      - run: |
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+        run: |
           cd api && npm install
           cd ..
           mkdir zip
